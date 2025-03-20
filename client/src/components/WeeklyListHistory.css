@@ -1,0 +1,78 @@
+.weekly-list-history-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  h3 {
+    text-align: center;
+    color: #333;
+  }
+  
+  .message {
+    text-align: center;
+    color: green;
+    margin-bottom: 10px;
+  }
+  
+  .create-list-form {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .list-name-input {
+    flex: 1;
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .create-list-button {
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .create-list-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .weekly-lists {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .list-item {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .list-item:hover {
+    background-color: #f1f1f1;
+  }
+  .undo-button {
+    background-color: #f39c12;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    border-radius: 5px;
+  }
+  
+  .undo-button:hover {
+    background-color: #e67e22;
+  }
+  

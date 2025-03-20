@@ -1,0 +1,141 @@
+/* General Container Styling */
+.homepage-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  .content-container {
+    width: 100%;
+    max-width: 800px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Title Styling */
+  .homepage-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  /* Message Styling */
+  .message {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #dff0d8;
+    color: #3c763d;
+    border: 1px solid #d6e9c6;
+    border-radius: 4px;
+  }
+  
+  /* Family Section */
+  .family-section {
+    margin-bottom: 20px;
+  }
+  
+  .items-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  .items-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+  }
+  
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  .no-items {
+    text-align: center;
+    color: #666;
+  }
+  
+  /* Buttons Styling */
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 0 5px;
+    font-size: 14px;
+  }
+  
+  .purchase-button {
+    background-color: #5cb85c;
+    color: white;
+  }
+  
+  .delete-button {
+    background-color: #d9534f;
+    color: white;
+  }
+  
+  .update-button {
+    background-color: #0275d8;
+    color: white;
+  }
+  
+  .undo-button {
+    display: block;
+    margin: 20px auto;
+    background-color: #f0ad4e;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  
+  /* Add/Update Item Section */
+  .add-item-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  .add-item-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .add-item-button {
+    background-color: #0275d8;
+    color: white;
+    font-size: 16px;
+  }
+  
+  /* Loading Message */
+  .loading {
+    text-align: center;
+    font-size: 18px;
+    color: #666;
+  }
+  
