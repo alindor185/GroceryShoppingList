@@ -3,7 +3,7 @@ import { Button, HStack, Modal, ModalBody, ModalCloseButton, ModalContent, Modal
 import React, { useRef, useState } from 'react'
 import { axiosInstance } from '../../../api/axios'
 
-export const JoinListButton = (props) => {
+export const JoinListButton = ({ buttonProps, addListToCurrentLists}) => {
     const [loading, setLoading] = useState(false);
     const [joinCode, setJoinCode] = useState("");
     const { isOpen, onOpen, onClose } = useDisclosure()
@@ -14,13 +14,14 @@ export const JoinListButton = (props) => {
     const onCompleteCode = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.post('/family/join', { joinCode })
+            const { data } = await axiosInstance.post('/lists/join', { joinCode })
             console.log("result", data)
             toast({
                 title: data.message,
                 status: 'success',
                 position: 'top'
             })
+            addListToCurrentLists(data.list);
             onClose();
         } catch (error) {
             console.log("errror", error)
@@ -37,7 +38,7 @@ export const JoinListButton = (props) => {
 
     return (
         <>
-            <Button onClick={onOpen} {...props} >
+            <Button onClick={onOpen} {...buttonProps} >
                 הצטרף לרשימה
             </Button>
             <Modal
@@ -63,7 +64,7 @@ export const JoinListButton = (props) => {
 
                     <ModalFooter>
                         <Button onClick={onClose} variant={"ghost"}>ביטול</Button>
-                        <Button mr={3} isLoading={loading} onClick={() => onCompleteCode(pincodeRef.current.value)} >
+                        <Button mr={3} isLoading={loading} onClick={() => onCompleteCode()} >
                             הצטרף
                         </Button>
                     </ModalFooter>

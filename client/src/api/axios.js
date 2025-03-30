@@ -5,6 +5,7 @@ export const axiosInstance = axios.create({
 })
 
 export const setAuthToken = (token, logout) => {
+  
     //  Add the token to each request header
     if (token) {
       axiosInstance.defaults.headers.Authorization = `Bearer ${token}`;
@@ -25,7 +26,6 @@ export const setAuthToken = (token, logout) => {
         return Promise.reject(error);
       }
     );
-
   };
 
 

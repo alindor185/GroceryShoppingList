@@ -7,6 +7,7 @@ const historySchema = mongoose.Schema({
   performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   date: { type: Date, default: Date.now },
   previousState: { type: mongoose.Schema.Types.Mixed, required: false },
+  
 });
 
 module.exports = mongoose.model('History', historySchema);

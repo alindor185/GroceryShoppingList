@@ -10,6 +10,7 @@ const listSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   imageUrl: { type: String, required: false },
+  completed: { type: Boolean, default: false },
   joinCode: {
     type: String,
     required: true,
@@ -18,7 +19,8 @@ const listSchema = mongoose.Schema({
   settings: {
     continious: { type: Boolean, default: false },
     assignItems: { type: Boolean, default: false },
-  }
+  },
+  isArchived: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.models.List || mongoose.model('List', listSchema);

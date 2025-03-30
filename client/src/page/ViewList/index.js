@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link as RouteLink } from 'react-router-dom'
 import { axiosInstance } from '../../api/axios';
 import {
-    Box,
     Card,
     CardBody,
     Heading,
-    List,
-    ListItem,
     Avatar,
     Text,
     Divider,
@@ -15,6 +12,7 @@ import {
     Flex,
     useToast,
     Editable,
+    Tag,
     EditablePreview,
     EditableInput,
     Link,
@@ -22,15 +20,20 @@ import {
     useColorModeValue,
     IconButton,
     useClipboard,
+    Button,
     VStack,
     FormControl,
     FormLabel,
     Switch,
+    useDisclosure,
     FormHelperText,
 } from "@chakra-ui/react";
 import { SearchItem } from "./SearchItem";
 import GroceryItemList from "./GroceryItemList";
+import { HistoryLog } from "./HistoryLog";
 import { ArrowForwardIcon, CheckIcon, CopyIcon } from "@chakra-ui/icons";
+import { ListSettings } from "./ListSettings";
+import { CompleteListModal } from "./CompleteListModal";
 
 
 export const ViewList = () => {
@@ -41,6 +44,13 @@ export const ViewList = () => {
     const [groceryItems, setGroceryItems] = useState([]);
     const [suggestedGroceries, setSuggestedGroceries] = useState([]);
     const { onCopy, value: code , setValue: setCode, hasCopied } = useClipboard('')
+    const { 
+        isOpen: isCompleteModalOpen,
+        onOpen: onCompleteModalOpen,
+        onClose: onCompleteModalClose
+    } = useDisclosure()
+
+    const hasNonPurchesedItem = listData?.items?.some((item) => item.purchased !== false) ;
     const bgHoverColor = useColorModeValue("gray.300", "gray.900");
     const [settings, setSettings] = useState({
         continious: false,
@@ -74,11 +84,27 @@ export const ViewList = () => {
 
 
 
+    const updateList = async (data) => {
+        try {
+            const result = await axiosInstance.put(`/lists/${listId}`, {
+                ...data
+            });
+            setSettings(result?.data?.list?.settings || {});
+        } catch(error) {
+            alert("Error while updating list")
+            console.error("Error while updating list", error)
+        }
+    };
+
+    const updateSettings = async (type, value) => {
+        setSettingValue(type, value);
+        await updateList({ settings: { ...settings, [type]: value } });
+    }
+
     // Add item to the grocery list
     const addItem = async (item) => {
         try {
             const { name, baseProductImageSmall, secondLevelCategory, categoryPrice } = item;
-            // ?.formattedValue
             const { data } = await axiosInstance.post(`/lists/${listId}/add-item`, {
                 name,
                 quantity: 1,
@@ -121,13 +147,17 @@ export const ViewList = () => {
     // Mark an item as purchased
     const markAsPurchased = async (id) => {
         try {
+        const isLastNonPurchaseItem = groceryItems.filter((item) => item.purchased === false).length === 1;
 
-            await axiosInstance.put(`/lists/${listId}/items/${id}/purchased`);
-            setGroceryItems(
-                groceryItems.map((item) =>
-                    item._id === id ? { ...item, purchased: true } : item
-            )
-        );
+        await axiosInstance.put(`/lists/${listId}/items/${id}/purchased`);
+        setGroceryItems(
+            groceryItems.map((item) =>
+                item._id === id ? { ...item, purchased: true } : item
+        ));
+        if (isLastNonPurchaseItem) {
+            onCompleteModalOpen();
+        }
+
         toast({
             title: "Item marked as purchased!",
             status: "success",
@@ -139,8 +169,7 @@ export const ViewList = () => {
         console.error("Error marking item as purchased", error)
     }
     };
-
-    console.log('settings', settings)
+    
 
     return (
         <Card p={4} boxShadow="lg" flex="1" onClick={() => setSuggestedGroceries([])} minHeight="90vh">
@@ -149,8 +178,9 @@ export const ViewList = () => {
                     <Spinner size="xl" />
                 </CardBody>
             ) : <CardBody>
-                <RouteLink to="/"><Link>  <ArrowForwardIcon /> חזור לעמוד הראשי </Link></RouteLink>
+                <RouteLink to="/"><Link>  <ArrowForwardIcon /> חזור לעמוד הראשי </Link> </RouteLink>
                 <Flex  gap={4} height="100%">
+                    <CompleteListModal isOpen={isCompleteModalOpen} onClose={onCompleteModalClose} />
                     <VStack flex={2} p={4} gap="2" alignItems="start" width="100%" >
                         <HStack alignItems="center" p={4}>
                             <Avatar name={listData.name} src={listData.imageUrl} size="md" />
@@ -159,7 +189,11 @@ export const ViewList = () => {
                                     <EditablePreview />
                                     <EditableInput />
                                 </Editable>
+
                             </Heading>
+                            {listData.isArchived && <Tag colorScheme="gray" size="sm">
+                            בארכיון
+                            </Tag>}
                         </HStack>
 
                         <SearchItem
@@ -170,73 +204,33 @@ export const ViewList = () => {
                             setSearchQuery={setSearchQuery}
                         />
 
+                        {hasNonPurchesedItem && !listData?.isArchived &&
+                         <Button onClick={onCompleteModalOpen} width="100%" mb={3}> העבר רשימה לארכיון ✅ </Button>
+                         }
                         <GroceryItemList
+                            isAssign={settings?.assignItems}
                             deleteItem={deleteItem}
                             groceryItems={groceryItems}
                             setGroceryItems={setGroceryItems}
                             changeQuantity={changeQuantity}
                             markAsPurchased={markAsPurchased}
+                            users={listData?.members}
+                            listId={listData?._id} // ✅ Fix applied here
+
                         />
                     </VStack>
 
                     {/* Divider */}
                     <Divider orientation="vertical" borderLeft="1px" color={bgHoverColor}/>
 
-                    <VStack flex="1" alignItems="start">
+                    <ListSettings 
+                        updateSettings={updateSettings}
+                        members={listData?.members} code={code} 
+                        onCopy={onCopy} settings={settings} admin={listData.admin}
+                        hasCopied={hasCopied}
+                        isArchived={listData.isArchived}
 
-                        <Box  p={4} width="100%">
-                            <Heading size="md" mb={4}>חברים ברשימה</Heading>
-                            <List spacing={2}>
-                                {listData?.members.map((person) => (
-                                    <ListItem key={person._id}>
-                                        <HStack>
-                                            <Avatar size="sm" src={person.image}  border/>
-                                            <Text>{person.fullName || person.email}</Text>
-
-                                            {person._id === listData?.admin && <Text color="gray.500">(מנהל/ת הרשימה)</Text>}
-                                        </HStack>
-                                    </ListItem>
-                                ))}
-                            </List>
-
-                            <VStack mt={6} p={4} border="1px dashed gray" textAlign="center" borderRadius="md" justifyItems="center">
-                                <Text fontWeight="bold">קוד הזמנה</Text>
-                                <HStack justifyContent="center" gap="1">
-                                    <IconButton onClick={onCopy} size="sm" variant="ghost">
-                                        {hasCopied ? <CheckIcon/> : <CopyIcon/>}
-                                    </IconButton>
-                                    <Text fontSize="2xl" color="green.500" letterSpacing="widest">{code}</Text>
-                                </HStack>
-                            </VStack>
-                        </Box>
-                        <VStack  p={4}>
-
-                        <Heading size="md" mb={4}>הגדרות רשימה</Heading>
-
-                            <FormControl  display='flex' justifyContent='center' flexDirection="column" onChange={(e)=> setSettingValue('continious', e.target.checked)}>
-                                <HStack>
-                                <FormLabel htmlFor='continious' mb='0'>
-                                    רשימה רב פעמית
-                                </FormLabel>
-                                <Switch id='continious' isChecked={settings.continious}/>
-                                </HStack>
-                                <FormHelperText>
-                                    ברשימה רב פעמית, לאחר שכל המוצרים ברשימה יירכשו, יהיה ניתן לאתחל את הרשימה מחדש ולקבל עבורה המלצות למוצרים על סמך ההיסטוריה.
-                                </FormHelperText>
-                            </FormControl>
-                            <FormControl display='flex' justifyContent='center' flexDirection="column" onChange={(e)=> setSettingValue('assignItems', e.target.checked)}>
-                                <HStack>
-                                <FormLabel htmlFor='assign' mb='0'>
-                                    שיוך מוצרים למשתמשים
-                                </FormLabel>
-                                <Switch id='assign' isChecked={settings.assignItems} />
-                                </HStack>
-                                <FormHelperText>
-                                   הגדרה זו מאפשרת למשתמשים להשתבץ למוצרים שונים.
-                                </FormHelperText>
-                            </FormControl>
-                        </VStack>
-                    </VStack>
+                    />
                 </Flex>
             </CardBody>}
         </Card>

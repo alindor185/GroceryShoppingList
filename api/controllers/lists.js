@@ -3,11 +3,11 @@ const List = require("../models/list");
 const crypto = require('crypto');
 
 module.exports = {
-  // Fetch all lists for the user
   getLists: async (req, res) => {
     try {
+      const isArchived = req.query.archived === 'true';
       const userId = req.user.id;
-      const lists = await List.find({ members: userId }).populate('items', 'name');
+      const lists = await List.find({ members: userId, isArchived: isArchived? true: { $ne: true } }).populate('items');
       res.status(200).json({ lists: lists || [] });
     } catch (error) {
       console.error('Error fetching lists:', error);
@@ -15,21 +15,15 @@ module.exports = {
     }
   },
 
-  // Fetch details of a specific list
   getListDetails: async (req, res) => {
-
     try {
       const { listId } = req.params;
 
       const list = await List.findById(listId)
-        .populate('items')
+        .populate({ path: 'items', populate: 'addedBy assignee' })
         .populate('history', 'action date performedBy')
         .populate('members')
-
-        .populate({
-          path: 'history',
-          populate: { path: 'performedBy', select: 'email' },
-        })
+        .populate({ path: 'history', populate: { path: 'performedBy', select: 'email' } });
 
       if (!list) {
         return res.status(404).json({ message: 'List not found' });
@@ -39,6 +33,73 @@ module.exports = {
     } catch (error) {
       console.error('Error fetching list details:', error);
       res.status(500).json({ message: 'Failed to fetch list details', error });
+    }
+  },
+
+  createList: async (req, res) => {
+    const { List, History } = mongoose.models;
+
+    try {
+      const { name, settings, imageUrl } = req.body;
+      const userId = req.user.id;
+
+      if (!name || name.trim() === '') {
+        return res.status(400).json({ message: 'List name is required' });
+      }
+      const joinCode = crypto.randomBytes(2).toString('hex').toUpperCase();
+
+      const list = new List({
+        name: name.trim(),
+        members: [userId],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        joinCode,
+        admin: userId,
+        settings,
+        imageUrl,
+        completed: false
+      });
+
+      const savedList = await list.save();
+
+      const historyEntry = new History({
+        action: 'create',
+        list: savedList._id,
+        performedBy: userId,
+        date: new Date(),
+      });
+      await historyEntry.save();
+
+      res.status(201).json({ message: `הרשימה '${name}' נוצרה בהצלחה.`, list: savedList });
+    } catch (error) {
+      console.error('Error creating list:', error);
+      res.status(500).json({ message: 'Failed to create list', error });
+    }
+  },
+
+  checkAndMarkListCompleted: async (req, res) => {
+    const { List } = mongoose.models;
+
+    try {
+      const { listId } = req.params;
+
+      const list = await List.findById(listId).populate('items');
+      if (!list) return res.status(404).json({ message: 'List not found' });
+
+      const allPurchased = list.items.length === 0 || list.items.every(item => item.purchased);
+      if (!allPurchased) return res.status(400).json({ message: 'יש ברשימה זו מוצרים שעדיין לא נרכשו.' });
+      
+      list.isArchived = true;
+
+      list.save();
+
+      res.status(200).json({
+        message: "הרשימה הועברה לארכיון בהצלחה",
+        completed: list.completed,
+      });
+    } catch (error) {
+      console.error('Error checking completion:', error);
+      res.status(500).json({ message: 'ארעה תקלה במהלך נסיון להעביר רשימה זו לארכיון. אנא נסה בשנית', error });
     }
   },
 
@@ -366,4 +427,77 @@ getRecommendations: async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch recommendations', error });
   }
 },
+  editListDetails: async (req, res) => {
+    const { List, History } = mongoose.models;
+
+    try {
+      const { listId } = req.params;
+      const updates = req.body;
+      const userId = req.user.id;
+
+      const list = await List.findById(listId);
+      if (!list) {
+        return res.status(404).json({ message: 'List not found' });
+      }
+
+      const previousState = list.toObject();
+      const updatedList = await List.findByIdAndUpdate(listId, updates, { new: true })
+        .populate({ path: 'items', populate: 'addedBy assignee' })
+        .populate('history', 'action date performedBy')
+        .populate('members')
+        .populate({ path: 'history', populate: { path: 'performedBy', select: 'email' } });
+;
+
+      const historyEntry = new History({
+        action: 'update_list_settings',
+        list: updatedList._id,
+        performedBy: userId,
+        previousState,
+        date: new Date(),
+      });
+      await historyEntry.save();
+
+      res.status(200).json({ message: `הצטרפת לרשימה "${list.name}" בהצלחה!`, list: updatedList });
+    } catch (error) {
+      console.error('Error updating list details:', error);
+      res.status(500).json({ message: 'Failed to update list details', error });
+    }
+  },
+  joinList: async (req, res) => {
+    const { List, History } = mongoose.models;
+    try {
+      const { joinCode } = req.body;
+      const userId = req.user.id;
+
+      if (!joinCode) {
+        return res.status(400).json({ message: 'Join code is required' });
+      }
+
+      console.log("joinCode, ", joinCode)
+      const list = await List.findOneAndUpdate(
+        { joinCode },
+        { $addToSet: { members: userId } },
+        { new: true }
+      );
+
+      if (!list) {
+        return res.status(404).json({ message: 'לא נמצאה רשימה עם קוד הצטרפות זה.' });
+      }
+
+      const historyEntry = new History({
+        action: 'join_list',
+        list: list._id,
+        performedBy: userId,
+        date: new Date(),
+      });
+
+      await historyEntry.save();
+
+      res.status(200).json({ message: 'Joined list successfully', list });
+
+    } catch(e) {
+      console.error('Error joining list:', e);
+      res.status(500).json({ message: 'Failed to join list', error: e });
+    }
+  }
 };

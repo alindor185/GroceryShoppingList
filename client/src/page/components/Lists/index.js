@@ -24,7 +24,7 @@ import { JoinListButton } from "../JoinListButton";
 import Basket from './grocery-basket.png'
 import { CreateListButton } from "../CreateListButton";
 
-export const Lists = () => {
+export const Lists = ({ isArchivedLists }) => {
   const [loading, setLoading] = useState(true);
   const [lists, setLists] = useState([]);
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export const Lists = () => {
 
   useEffect(() => {
     axiosInstance
-      .get("/lists")
+      .get("/lists", { params: isArchivedLists ? { archived: isArchivedLists } : {}})
       .then((res) => {
         console.log("res", res);
         setLists(res.data?.lists || []);
@@ -54,9 +54,9 @@ export const Lists = () => {
         {/* Header with Title and Button */}
         <Flex justify="space-between" align="center" mb={4}>
           <Heading as="h3" size="lg">
-            הרשימות שלי
+            {isArchivedLists ? "הרשימות שבארכיון" : "רשימות פעילות"}
           </Heading>
-          <CreateListButton onSuccess={addListToCurrentLists} />
+          {!isArchivedLists && <CreateListButton onSuccess={addListToCurrentLists} />}
         </Flex>
 
         {/* Scrollable List Container */}
@@ -71,11 +71,13 @@ export const Lists = () => {
              <VStack spacing={4}>
               <Image src={Basket} width={20} />
             <Text fontSize="xl">אין רשימות להציג</Text>
-            <JoinListButton variant="outline" />
+            {!isArchivedLists && <JoinListButton buttonProps={{ variant: "outline"}} addListToCurrentLists={addListToCurrentLists} />}
           </VStack>
          : lists.map((list, index) => {
               // Mock progress calculation (random for now)
-              const progress = Math.floor(Math.random() * 100);
+              const totalItems = list.items.length;
+              const totalPurchasedItems = list.items.filter((item) => item.purchased).length; 
+              const progress = totalItems ? Math.floor((totalPurchasedItems / totalItems) * 100) : 0;
 
               return (
                 <ListItem
@@ -116,7 +118,7 @@ export const Lists = () => {
             })}
           </List>
         </Box>
-         {lists?.length > 0 &&  <JoinListButton width="100%" variant="outline" margin="3" />}
+         {!isArchivedLists && lists?.length > 0 &&  <JoinListButton buttonProps={{ width: "100%", variant: "outline", margin:"3" }} addListToCurrentLists={addListToCurrentLists} />}
       </CardBody>
     </Card>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 // import Login from "./components/Login";
-import Register from "./components/Register";
+import Register from "./page/Register";
 import HomePage from "./components/HomePage";
 import WeeklyListDetails from "./components/WeeklyListDetails";
 import EditProfile from './components/EditProfile';

@@ -50,7 +50,7 @@ export const Topbar = () => {
           Shoppingo
         </Heading>
         <Spacer />
-        <Text dir="rtl" mr={4} >שלום, {username} </Text>
+        <Text dir="rtl" ml={4} >שלום, {username} </Text>
         <Avatar name={user?.fullName || user.email} src={user?.image} size="lg" ml={4} showBorder boxShadow="sm" />
         <IconButton
             variant="ghost"

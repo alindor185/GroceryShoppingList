@@ -22,12 +22,12 @@ module.exports = {
       // Fetch history from database
       const history = await History.find(query)
         .populate('list', 'name') // Populate field with name
-        .populate('performedBy', 'email') // Populate performedBy field with email
+        .populate('performedBy') // Populate performedBy field with email
         .populate('itemId', 'name') // Populate itemId field with name
         .sort({ date: -1 }); // Sort history by date (most recent first)
 
       // Debug: Log fetched history
-      console.log('Fetched history:', history);
+      // console.log('Fetched history:', history);
 
       // Return history as response
       res.status(200).json({ history });

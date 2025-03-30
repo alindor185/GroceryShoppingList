@@ -7,7 +7,7 @@ export const Home = () => {
     return (
         <Flex justifyContent="center" gap={6} flexWrap="wrap">
             <Lists/>
-            <Lists/>
+            <Lists isArchivedLists/>
         </Flex>
     )
 }

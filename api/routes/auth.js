@@ -16,16 +16,8 @@ router.get(
       return res.status(401).json({ message: "Authentication failed" });
     }
 
-    // ✅ Instead of redirecting immediately, send token as JSON response
-    res.json({
-      success: true,
-      message: "Google login successful",
-      token: req.user.token,
-      user: req.user.user,
-    });
-
     // Alternative: Redirect with token in URL (ONLY if frontend handles it correctly)
-    // res.redirect(`http://localhost:3000/login?token=${req.user.token}`);
+    res.redirect(`http://localhost:3000/login?token=${req.user.token}`);
   }
 );
 

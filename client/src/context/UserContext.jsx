@@ -31,6 +31,7 @@ export const UserProvider = ({ children }) => {
     try {
       const { data } = await axiosInstance.post("/users/login", credentials);
       localStorage.setItem("token", data.token);
+      setAuthToken(data.token, logout);
       setUser(data.user);
     } catch (error) {
       throw error;

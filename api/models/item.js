@@ -9,6 +9,7 @@ const itemSchema = mongoose.Schema({
   formattedPrice: { type: String, required: true },
   list: { type: mongoose.Schema.Types.ObjectId, ref: 'List', required: true },
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false},
   purchased: { type: Boolean, default: false },
 });
 
