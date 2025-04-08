@@ -17,5 +17,6 @@ router.post('/undo', checkAuth, listController.undoLastAction);
 router.get('/:listId/recommendations', checkAuth, listController.getRecommendations);
 router.post('/:listId/complete', checkAuth, listController.checkAndMarkListCompleted);
 router.put('/:listId', checkAuth, listController.editListDetails);
+router.get('/top_items', checkAuth, listController.getTopItemsInLists);
 
 module.exports = router;

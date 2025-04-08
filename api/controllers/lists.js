@@ -397,34 +397,105 @@ getRecommendations: async (req, res) => {
     const userId = req.user.id;
     const { listId } = req.params;
 
-    // Get all lists for user
-    const allLists = await List.find({ list: listId }).populate('items');
+    const currentList = await List.findById(listId);
 
-    // Analyze all lists to find the most common items
-    const itemCounts = {}; // Object to store item counts
-    for (const list of allLists) {
-      for (const item of list.items) {
-        const itemName = item.name.trim().toLowerCase();
-        if (itemCounts[itemName]) {
-          itemCounts[itemName].count += 1;
-        } else {
-          itemCounts[itemName] = { count: 1, category: item.category || "Uncategorized" };
-        }
-      }
+    if (!currentList) {
+      return res.status(404).json({ message: 'Current list not found' });
     }
+  // Assume currentList is the current list document and it has an items array:
+  const currentListItemIds = currentList.items.map(id => new mongoose.Types.ObjectId(id));
 
-    // Sort items by frequency
-    const sortedItems = Object.entries(itemCounts)
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([name, details]) => ({ name, count: details.count, category: details.category }));
 
-    // Return the top recommended items (e.g., top 10)
-    const recommendations = sortedItems.slice(0, 10);
+  const recommendations = await List.aggregate([
+        // 1. Match lists where the user is a member and exclude the current list.
+          {
+            $match: {
+              members: new mongoose.Types.ObjectId(userId),
+              _id: { $ne: new mongoose.Types.ObjectId(listId) }
+            }
+          },
+          // 2. Lookup the actual item documents.
+          {
+            $lookup: {
+              from: 'items', // ensure this matches your items collection name
+              localField: 'items',
+              foreignField: '_id',
+              as: 'itemsData'
+            }
+          },
+          // 3. Unwind the joined items.
+          { $unwind: '$itemsData' },
+          // 4. Exclude items that already exist in your current list.
+          {
+            $match: {
+              'itemsData._id': { $nin: currentListItemIds }
+            }
+          },
+          // 5. Sort: first by isArchived (archived lists prioritized) and then by latest added items.
+          // Using the _id field of the item as a proxy for creation time (ObjectIds are roughly time-ordered).
+          {
+            $sort: {
+              isArchived: -1,
+              'itemsData._id': -1
+            }
+          },
+          // 6. Limit to top 5 items.
+          { $limit: 5 },
+          // 7. Project the desired output fields.
+          {
+            $project: {
+              item: '$itemsData',
+              _id: 0
+            }
+          }
+    ]);
 
     res.status(200).json({ recommendations });
   } catch (error) {
     console.error('Error fetching recommendations:', error);
     res.status(500).json({ message: 'Failed to fetch recommendations', error });
+  }
+},
+getTopItemsInLists: async (req, res) => {
+  const { Item } = mongoose.models;
+  try {
+    const topItems = await Item.aggregate([
+      // 1. Filter for items that are purchased and have a valid imageUrl.
+          { 
+            $match: { 
+              purchased: true, 
+              imageUrl: { $exists: true, $ne: null } 
+            } 
+          },
+          // 2. Group by a unique identifier (e.g., name) and count occurrences.
+          {
+            $group: {
+              _id: "$name",
+              count: { $sum: 1 },
+              // Grab a representative document from each group.
+              item: { $first: "$$ROOT" }
+            }
+          },
+          // 3. Sort the groups by purchase count in descending order.
+          { $sort: { count: -1 } },
+          // 4. Limit the result to the top 5 groups.
+          { $limit: 5 },
+          // 5. Project the desired fields.
+          {
+            $project: {
+              _id: 0,
+              name: "$_id",
+              purchaseCount: "$count",
+              item: 1
+            }
+          }
+
+    ]);
+    
+    res.status(200).json({ topItems });
+  } catch (error) {
+    console.error('Error fetching top items:', error);
+    res.status(500).json({ message: 'Failed to fetch top items', error });
   }
 },
   editListDetails: async (req, res) => {

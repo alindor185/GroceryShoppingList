@@ -22,11 +22,14 @@ import {
     useClipboard,
     Button,
     VStack,
+    Box,
+    Image,
     FormControl,
     FormLabel,
     Switch,
     useDisclosure,
     FormHelperText,
+    
 } from "@chakra-ui/react";
 import { SearchItem } from "./SearchItem";
 import GroceryItemList from "./GroceryItemList";
@@ -43,14 +46,18 @@ export const ViewList = () => {
     const [listData, setListData] = useState(null);
     const [groceryItems, setGroceryItems] = useState([]);
     const [suggestedGroceries, setSuggestedGroceries] = useState([]);
+    const [recommendedItems, setRecommendedItems] = useState([]);
     const { onCopy, value: code , setValue: setCode, hasCopied } = useClipboard('')
     const { 
         isOpen: isCompleteModalOpen,
         onOpen: onCompleteModalOpen,
         onClose: onCompleteModalClose
     } = useDisclosure()
+    const bg = useColorModeValue('white', 'gray.700');
+    const borderColor = useColorModeValue('gray.200', 'gray.600');
+  
 
-    const hasNonPurchesedItem = listData?.items?.some((item) => item.purchased !== false) ;
+    const hasAllItemsPurchesed = groceryItems?.every((item) => item.purchased == true) ;
     const bgHoverColor = useColorModeValue("gray.300", "gray.900");
     const [settings, setSettings] = useState({
         continious: false,
@@ -83,6 +90,16 @@ export const ViewList = () => {
     }, [listId])
 
 
+    useEffect(()=> {
+        axiosInstance.get(`/lists/${listId}/recommendations`)
+        .then(({ data }) => {
+            console.log("Recommendations data", data);
+            setRecommendedItems(data?.recommendations?.map((i)=> i.item) || []);
+        }).catch((err) => {
+            alert("Error while fetching list data")
+            console.log(err)
+        })
+    },[])
 
     const updateList = async (data) => {
         try {
@@ -170,6 +187,7 @@ export const ViewList = () => {
     }
     };
     
+    console.log("recommendedItems", recommendedItems)
 
     return (
         <Card p={4} boxShadow="lg" flex="1" onClick={() => setSuggestedGroceries([])} minHeight="90vh">
@@ -204,7 +222,7 @@ export const ViewList = () => {
                             setSearchQuery={setSearchQuery}
                         />
 
-                        {hasNonPurchesedItem && !listData?.isArchived &&
+                        {hasAllItemsPurchesed && !listData?.isArchived &&
                          <Button onClick={onCompleteModalOpen} width="100%" mb={3}> העבר רשימה לארכיון ✅ </Button>
                          }
                         <GroceryItemList
@@ -218,6 +236,46 @@ export const ViewList = () => {
                             listId={listData?._id} // ✅ Fix applied here
 
                         />
+
+<Box w="100%" p={4}>
+        <Heading mb={6}>המלצות למוצרים</Heading>
+        <Flex overflowX="auto" pb={4}>
+          {recommendedItems.map((item) => (
+            <Box
+              key={item._id}
+              borderWidth="1px"
+              borderRadius="lg"
+              overflow="hidden"
+              p={4}
+              bg={bg}
+              borderColor={borderColor}
+              minWidth="250px"
+              mr={4}
+            >
+              <Image
+                src={item.imageUrl}
+                alt={item.name}
+                boxSize="150px"
+                objectFit="cover"
+                mx="auto"
+                mb={4}
+              />
+              <Text fontWeight="bold" fontSize="lg" mb={1}>
+                {item.name}
+              </Text>
+              <Text color="gray.500" mb={3}>
+                {item.category}
+              </Text>
+              <Flex justifyContent="space-between" alignItems="center">
+                <Text fontSize="md" fontWeight="semibold">
+                  {item.formattedPrice}
+                </Text>
+              </Flex>
+            </Box>
+          ))}
+        </Flex>
+      </Box>
+
                     </VStack>
 
                     {/* Divider */}

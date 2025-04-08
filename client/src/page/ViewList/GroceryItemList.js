@@ -20,7 +20,18 @@ import {axiosInstance} from '../../api/axios';
 import HistoryLog from './HistoryLog';
 import {UserDropdown} from './SelectUser';
 
-const sortByPurchased = (items = []) => [...items].sort((a, b) => Number(a.purchased) - Number(b.purchased));
+const sortByPurchasedAndCategory = (items = []) => {
+  return [...items].sort((a, b) => {
+    // Compare purchased status first (assuming purchased is numeric or a boolean convertible to number)
+    const purchasedDiff = Number(a?.purchased) - Number(b?.purchased);
+    if (purchasedDiff !== 0) return purchasedDiff;
+
+    // Then compare by item.category (assumed to be a string)
+    if (a.category < b.category) return -1;
+    if (a.category > b.category) return 1;
+    return 0;
+  });
+};
 
 export const GroceryItemList = ({
   groceryItems,
@@ -53,7 +64,7 @@ export const GroceryItemList = ({
   return (
     <>
       <List spacing={5} width="100%">
-        {sortByPurchased(groceryItems).map((item) => (
+        {sortByPurchasedAndCategory(groceryItems).map((item) => (
           <ListItem
             key={item._id}
             p={5}
