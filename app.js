@@ -7,8 +7,11 @@ const mongoose = require('mongoose');
 const passport = require("passport"); // ✅ Import Passport.js
 require("./api/middlewares/passport"); // ✅ Load Passport Strategies
 
+
 const checkAuth = require('./api/middlewares/checkAuth');
 const authRoutes = require("./api/routes/auth"); // Import Google Auth Routes
+const recommendationRoutes = require('./api/routes/recommendation');
+
 
 // ✅ Load models
 require("./api/models/family");
@@ -17,6 +20,9 @@ require("./api/models/category");
 require("./api/models/history");
 require("./api/models/item");
 require("./api/models/user");
+require("./api/models/Recommendations");
+
+
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -34,6 +40,7 @@ const categoriesRoutes = require('./api/routes/categories');
 const usersRoutes = require('./api/routes/users');
 const historyRoutes = require('./api/routes/history');
 const listsRoutes = require('./api/routes/lists');
+
 
 // ✅ Middleware
 app.use(morgan("dev"));
@@ -54,6 +61,8 @@ app.use('/users', usersRoutes);
 app.use('/history', historyRoutes);
 app.use('/items', itemsRoutes);
 app.use('/lists', listsRoutes); // All weekly lists routes (e.g., GET, POST)
+app.use('/recommendation', recommendationRoutes);
+
 
 // ✅ Error Handling
 app.use((req, res, next) => {
@@ -68,5 +77,7 @@ app.use((error, req, res, next) => {
         error: { message: error.message }
     });
 });
+app.use('/api/recommendation', recommendationRoutes); // Add this line
+
 
 module.exports = app;

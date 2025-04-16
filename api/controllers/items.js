@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const axios = require('axios');
-
 const API_URL = "https://www.shufersal.co.il/online/he";
 const DEPARTMENT = `departments:A`;
 
@@ -117,34 +116,39 @@ module.exports = {
       });
   },
 
-  // Mark an item as purchased
-  markItemPurchased: (req, res) => {
-    const { Item, History } = mongoose.models;
-    const { id } = req.params;
-
-    Item.findByIdAndUpdate(id, { purchased: true }, { new: true })
-      .then((updatedItem) => {
-        if (!updatedItem) {
-          return res.status(404).json({ message: 'Item not found' });
-        }
-
-        return History.create({
-          action: 'mark_purchased',
-          itemId: id,
-          list: updatedItem.list,
-          date: new Date(),
-          performedBy: req.user.id,
-        }).then(() => {
-          res.status(200).json({ message: 'Item marked as purchased', item: updatedItem });
-        }).catch((error) => {
-          res.status(500).json({ error });
-        });
-      })
-      .catch((error) => {
-        res.status(500).json({ error });
-      });
-  },
-
+// Mark an item as purchased
+markItemPurchased: async (req, res) => {
+  const { Item, History } = mongoose.models;
+  const { id } = req.params;
+  const userId = req.user.id;
+  
+  try {
+    // Find and update the item
+    const updatedItem = await Item.findByIdAndUpdate(id, { purchased: true }, { new: true });
+    
+    if (!updatedItem) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
+    // Create history entry
+    await History.create({
+      action: 'mark_purchased',
+      itemId: id,
+      list: updatedItem.list,
+      date: new Date(),
+      performedBy: userId,
+    });
+    
+    // Process the purchase for recommendations
+    const { processPurchase } = require('../controllers/recommendationEngine');
+    await processPurchase(updatedItem, userId);
+    
+    res.status(200).json({ message: 'Item marked as purchased', item: updatedItem });
+  } catch (error) {
+    console.error('Error marking item as purchased:', error);
+    res.status(500).json({ error });
+  }
+},
   // Get change history (fallback)
   getHistory: (req, res) => {
     const { History } = mongoose.models;

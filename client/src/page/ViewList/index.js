@@ -37,7 +37,7 @@ import { HistoryLog } from "./HistoryLog";
 import { ArrowForwardIcon, CheckIcon, CopyIcon } from "@chakra-ui/icons";
 import { ListSettings } from "./ListSettings";
 import { CompleteListModal } from "./CompleteListModal";
-
+import RecommendedItems from "./RecommendedItems";
 
 export const ViewList = () => {
     const { listId } = useParams();
@@ -46,7 +46,6 @@ export const ViewList = () => {
     const [listData, setListData] = useState(null);
     const [groceryItems, setGroceryItems] = useState([]);
     const [suggestedGroceries, setSuggestedGroceries] = useState([]);
-    const [recommendedItems, setRecommendedItems] = useState([]);
     const { onCopy, value: code , setValue: setCode, hasCopied } = useClipboard('')
     const { 
         isOpen: isCompleteModalOpen,
@@ -56,7 +55,6 @@ export const ViewList = () => {
     const bg = useColorModeValue('white', 'gray.700');
     const borderColor = useColorModeValue('gray.200', 'gray.600');
   
-
     const hasAllItemsPurchesed = groceryItems?.every((item) => item.purchased == true) ;
     const bgHoverColor = useColorModeValue("gray.300", "gray.900");
     const [settings, setSettings] = useState({
@@ -72,6 +70,7 @@ export const ViewList = () => {
             [type]: value
         })
     }
+    
     useEffect(() => {
         axiosInstance.get(`/lists/${listId}/details`)
             .then(({ data }) => {
@@ -88,18 +87,6 @@ export const ViewList = () => {
                 setLoading(false);
             })
     }, [listId])
-
-
-    useEffect(()=> {
-        axiosInstance.get(`/lists/${listId}/recommendations`)
-        .then(({ data }) => {
-            console.log("Recommendations data", data);
-            setRecommendedItems(data?.recommendations?.map((i)=> i.item) || []);
-        }).catch((err) => {
-            alert("Error while fetching list data")
-            console.log(err)
-        })
-    },[])
 
     const updateList = async (data) => {
         try {
@@ -127,7 +114,7 @@ export const ViewList = () => {
                 quantity: 1,
                 imageUrl: baseProductImageSmall,
                 category: secondLevelCategory,
-                formattedPrice: categoryPrice.formattedValue,
+                formattedPrice: categoryPrice?.formattedValue || "",
             });
             setGroceryItems([...groceryItems, { ...data?.item, assignedTo: "", purchased: false }]);
             setSearchQuery(""); // Clear search
@@ -161,33 +148,32 @@ export const ViewList = () => {
             console.error("Error changing item quantity", error)
         }
     }
+    
     // Mark an item as purchased
     const markAsPurchased = async (id) => {
         try {
-        const isLastNonPurchaseItem = groceryItems.filter((item) => item.purchased === false).length === 1;
+            const isLastNonPurchaseItem = groceryItems.filter((item) => item.purchased === false).length === 1;
 
-        await axiosInstance.put(`/lists/${listId}/items/${id}/purchased`);
-        setGroceryItems(
-            groceryItems.map((item) =>
-                item._id === id ? { ...item, purchased: true } : item
-        ));
-        if (isLastNonPurchaseItem) {
-            onCompleteModalOpen();
+            await axiosInstance.put(`/lists/${listId}/items/${id}/purchased`);
+            setGroceryItems(
+                groceryItems.map((item) =>
+                    item._id === id ? { ...item, purchased: true } : item
+            ));
+            if (isLastNonPurchaseItem) {
+                onCompleteModalOpen();
+            }
+
+            toast({
+                title: "Item marked as purchased!",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
+        } catch (error) {
+            alert("Error while marking item as purchased")
+            console.error("Error marking item as purchased", error)
         }
-
-        toast({
-            title: "Item marked as purchased!",
-            status: "success",
-            duration: 2000,
-            isClosable: true,
-        });
-    } catch (error) {
-        alert("Error while marking item as purchased")
-        console.error("Error marking item as purchased", error)
-    }
     };
-    
-    console.log("recommendedItems", recommendedItems)
 
     return (
         <Card p={4} boxShadow="lg" flex="1" onClick={() => setSuggestedGroceries([])} minHeight="90vh">
@@ -197,7 +183,7 @@ export const ViewList = () => {
                 </CardBody>
             ) : <CardBody>
                 <RouteLink to="/"><Link>  <ArrowForwardIcon /> חזור לעמוד הראשי </Link> </RouteLink>
-                <Flex  gap={4} height="100%">
+                <Flex gap={4} height="100%">
                     <CompleteListModal isOpen={isCompleteModalOpen} onClose={onCompleteModalClose} />
                     <VStack flex={2} p={4} gap="2" alignItems="start" width="100%" >
                         <HStack alignItems="center" p={4}>
@@ -207,7 +193,6 @@ export const ViewList = () => {
                                     <EditablePreview />
                                     <EditableInput />
                                 </Editable>
-
                             </Heading>
                             {listData.isArchived && <Tag colorScheme="gray" size="sm">
                             בארכיון
@@ -233,49 +218,16 @@ export const ViewList = () => {
                             changeQuantity={changeQuantity}
                             markAsPurchased={markAsPurchased}
                             users={listData?.members}
-                            listId={listData?._id} // ✅ Fix applied here
-
+                            listId={listData?._id}
                         />
 
-<Box w="100%" p={4}>
-        <Heading mb={6}>המלצות למוצרים</Heading>
-        <Flex overflowX="auto" pb={4}>
-          {recommendedItems.map((item) => (
-            <Box
-              key={item._id}
-              borderWidth="1px"
-              borderRadius="lg"
-              overflow="hidden"
-              p={4}
-              bg={bg}
-              borderColor={borderColor}
-              minWidth="250px"
-              mr={4}
-            >
-              <Image
-                src={item.imageUrl}
-                alt={item.name}
-                boxSize="150px"
-                objectFit="cover"
-                mx="auto"
-                mb={4}
-              />
-              <Text fontWeight="bold" fontSize="lg" mb={1}>
-                {item.name}
-              </Text>
-              <Text color="gray.500" mb={3}>
-                {item.category}
-              </Text>
-              <Flex justifyContent="space-between" alignItems="center">
-                <Text fontSize="md" fontWeight="semibold">
-                  {item.formattedPrice}
-                </Text>
-              </Flex>
-            </Box>
-          ))}
-        </Flex>
-      </Box>
-
+                        <RecommendedItems 
+                            listId={listId} 
+                            onAddItem={(item) => {
+                                setGroceryItems([...groceryItems, item]);
+                            }}
+                            refreshTrigger={groceryItems.length} 
+                        />
                     </VStack>
 
                     {/* Divider */}
@@ -283,11 +235,13 @@ export const ViewList = () => {
 
                     <ListSettings 
                         updateSettings={updateSettings}
-                        members={listData?.members} code={code} 
-                        onCopy={onCopy} settings={settings} admin={listData.admin}
+                        members={listData?.members} 
+                        code={code} 
+                        onCopy={onCopy} 
+                        settings={settings} 
+                        admin={listData.admin}
                         hasCopied={hasCopied}
                         isArchived={listData.isArchived}
-
                     />
                 </Flex>
             </CardBody>}

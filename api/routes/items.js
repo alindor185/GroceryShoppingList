@@ -21,5 +21,4 @@ router.put('/:id/purchased', checkAuth, markItemPurchased);
 router.get('/history', checkAuth, getHistory);
 router.get('/search', checkAuth, searchItem);
 
-
 module.exports = router;
